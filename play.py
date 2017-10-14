@@ -1,6 +1,6 @@
-from spn2.Node import SumNode, LeafNode, ProdNode
-from spn2.Layer import Layer
-from spn2.SPN import SPN
+from Node import SumNode, LeafNode, ProdNode
+from Layer import Layer
+from SPN import SPN
 
 if __name__ == '__main__':
     x1 = LeafNode('x1')

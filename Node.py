@@ -1,4 +1,4 @@
-from spn2.NodeType import NodeType
+from NodeType import NodeType
 import numpy as np
 import random
 

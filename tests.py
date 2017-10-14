@@ -1,7 +1,8 @@
 import unittest
-from spn2.SPN import SPN
-from spn2.Node import SumNode, LeafNode, ProdNode
-from spn2.NodeType import NodeType
+from SPN import SPN
+from Node import SumNode, LeafNode, ProdNode
+from NodeType import NodeType
+
 
 class TestBasicSPN(unittest.TestCase):
 
