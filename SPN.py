@@ -39,3 +39,25 @@ class SPN:
                     child.normalise_counts_as_weights()
                 self.normalise_counts_as_weights(child)
 
+    def fit(self, variables, data, epochs=100):
+        print(data)
+        for epoch in range(epochs):
+            print('Epoch {}/{}'.format(epoch, epochs))
+            for leaf in self.leaves.values():
+                leaf.value = 0
+            for sample in data:
+                for i in range(len(sample)):
+                    # Set the leaves to match training example
+                    if sample[i] == 1:
+                        self.leaves[variables[i]].value = 1.0
+                        self.leaves[variables[i]+'_'].value = 0.0
+                    else :
+                        self.leaves[variables[i]].value = 0.0
+                        self.leaves[variables[i] + '_'].value = 1.0
+                # Calculate the max version bottom-up
+                self.get_root_value(True)
+                # Update the counts top-down
+                self.calculate_map_route_counts()
+            self.normalise_counts_as_weights()
+        for link in self.get_root().links.values():
+            print(link)

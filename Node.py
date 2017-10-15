@@ -66,7 +66,7 @@ class SumNode(Node):
         maximum = {'value': 0, 'node': None}
         for child in self.children:
             val = child.value * self.links[child.name]['weight']
-            if val > maximum['value']:
+            if val >= maximum['value']:
                 maximum['value'] = val
                 maximum['node'] = child
         self.links[maximum['node'].name]['count'] += 1
