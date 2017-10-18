@@ -1,9 +1,17 @@
 from NodeType import NodeType
+from Node import SumNode, ProdNode, LeafNode
+import numpy as np
+import pandas as pd
+from sklearn.mixture.gaussian_mixture import GaussianMixture
+from scipy import linalg
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import itertools
 
 
 class SPN:
     """The structure for an SPN"""
-    def __init__(self, nodes):
+    def __init__(self, nodes=[]):
         self.nodes = nodes
         self.leaves = {}
         for node in nodes:
@@ -40,7 +48,7 @@ class SPN:
                 self.normalise_counts_as_weights(child)
 
     def fit(self, variables, data, epochs=100):
-        print(data)
+        """Tries to lean appropriate weights for the current structure by applying hard EM"""
         for epoch in range(epochs):
             print('Epoch {}/{}'.format(epoch, epochs))
             for leaf in self.leaves.values():
@@ -61,3 +69,68 @@ class SPN:
             self.normalise_counts_as_weights()
         for link in self.get_root().links.values():
             print(link)
+
+    def create_structure(self, data, variables):
+        """Tries to learn appropriate structure from the data"""
+        self.learn_spn(pd.DataFrame(data, columns=variables))
+
+    def learn_spn(self, data, parent=None, weight=None):
+        # Split rows on first pass
+        if not parent:
+            print('Creating root node from data with shape: ', data.shape)
+            root = SumNode('root')
+            self.nodes.append(root)
+            model = find_best_model(data)  # Find best Gaussian Mixture Model
+            clusters = model.predict(data)  # Find the best clusters to split data into, row-wise
+            classes = np.unique(clusters)
+            # Create the data subsets that will be children to this node
+            for c in classes:
+                subset = data[clusters == c]
+                weight = len(subset) / len(classes)
+                self.learn_spn(subset, root, weight)
+
+        # Parent is SumNode, so split column-wise
+        elif weight:
+            print('Creating product node from data with shape: ', data.shape)
+            count = len([p for p in self.nodes if p.type == NodeType.PRODUCT])
+            name = 'P{}'.format(count)  # Iteratively name product nodes
+            node = ProdNode(name)
+            parent.add_child(node, weight)
+            self.nodes.append(node)
+            transposed = data.T
+            model = find_best_model(transposed)  # Find best Gaussian Mixture Model
+            clusters = model.predict(transposed)  # Find the best clusters to split data into, row-wise
+            classes = np.unique(clusters)
+            # Create the data subsets that will be children to this node
+            for c in classes:
+                subset = transposed[clusters == c]
+                self.learn_spn(subset.T, node, None)
+
+        # Parent is ProdNode, so split row-wise
+        else:
+            if len(data.columns) == 1:  # Create leaf node; scope == 1
+                print('Creating leaf node from data with shape: ', data.shape)
+            else:
+                print('Creating sum node from data with shape: ', data.shape)
+
+
+def find_best_model(data):
+    """Tries to find the best GMM for the data"""
+    lowest_bic = np.infty
+    bic = []
+    num_samples = len(data)
+    upper = 10 if 10 < num_samples else num_samples
+    n_components_range = range(1, upper)
+    cv_types = ['spherical', 'tied', 'diag', 'full']
+    for cv_type in cv_types:
+        for n_components in n_components_range:
+            # Fit a Gaussian mixture with EM
+            gmm = GaussianMixture(n_components=n_components, covariance_type=cv_type)
+            gmm.fit(data)
+            bic.append(gmm.bic(data))
+            if bic[-1] < lowest_bic:
+                lowest_bic = bic[-1]
+                best_gmm = gmm
+
+    return best_gmm
+

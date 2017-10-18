@@ -10,6 +10,7 @@ class Node(object):
 
     def add_child(self, child):
         self.children.append(child)
+        child.add_parent(self)
 
     def update_map_weight_counts(self):
         raise NotImplementedError()
@@ -24,7 +25,7 @@ class Node(object):
 
 class SumNode(Node):
     """An SPN sum node"""
-    def __init__(self, name, children):
+    def __init__(self, name, children=[]):
         self.name = name
         self.children = children
         # Set random weights
@@ -40,6 +41,15 @@ class SumNode(Node):
         self.parents = []
         self.type = NodeType.SUM
         self.value = 0.0
+
+    def add_child(self, child, weight=None):
+        self.children.append(child)
+        child.add_parent(self)
+        link = dict()
+        link['child'] = child
+        link['weight'] = weight if weight else random.random()
+        link['count'] = 0
+        self.links[child.name] = link
 
     def normalise_weights(self):
         total = np.sum(list(map(lambda l: l['weight'], self.links.values())))
