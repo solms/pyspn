@@ -9,13 +9,13 @@ def generate_training_examples(num=1000):
     for i in range(num):
         sample = random.random()
         if sample < 0.2:
-            examples.append([0,0,0])
+            examples.append([0,0])
         elif sample < 0.6:
-            examples.append([0,1,1])
+            examples.append([0,1])
         elif sample < 0.7:
-            examples.append([1,0,1])
+            examples.append([1,0])
         else:
-            examples.append([1,1,0])
+            examples.append([1,1])
     return examples
 
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     # spn = SPN([x1_,x1,x2_,x2,s1,s2,s3,p1,p2])
 
     data = generate_training_examples(1000)
-    variables = ['x1','x2','x3']
+    variables = ['x1','x2']
     spn = SPN()
     spn.create_structure(data, variables)
     # spn.fit(variables, data, epochs=50)
