@@ -56,6 +56,7 @@ if __name__ == '__main__':
     variables = ['x1','x2']
     spn = SPN()
     spn.create_structure(data, variables)
+    print(spn)
     # spn.fit(variables, data, epochs=50)
     #
     # x1.value = 1.0

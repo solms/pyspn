@@ -86,54 +86,72 @@ class SPN:
                 weight = len(subset) / len(classes)
                 self.learn_spn(subset, root, weight)
 
-        # Randomly decide whether to split on columns (for now)
-        split_features = random.randint(0, 2) > 1
-        print('split_features:', split_features)
-
-        # Create leaf node if only 1x feature
-        if len(data.columns) == 1:  # Create leaf node; scope == 1
-            print('Creating leaf node from data with shape: ', data.shape)
-
-        # Split features
-        elif split_features:
-            print('Creating product node from data with shape: ', data.shape)
-            count = len([p for p in self.nodes if p.type == NodeType.PRODUCT])
-            name = 'P{}'.format(count)  # Iteratively name product nodes
-            node = ProdNode(name)
-            if weight:  # Parent is SumNode
-                parent.add_child(node, weight)
-            else:  # Parent is ProdNode
-                parent.add_child(node)
-            self.nodes.append(node)
-            transposed = data.T
-            model = find_best_model(transposed)  # Find best Gaussian Mixture Model
-            clusters = model.predict(transposed)  # Find the best clusters to split data into, row-wise
-            classes = np.unique(clusters)
-            # Create the data subsets that will be children to this node
-            for c in classes:
-                subset = transposed[clusters == c]
-                self.learn_spn(subset.T, node, None)
-        # Split rows
         else:
-            count = len([s for s in self.nodes if s.type == NodeType.SUM])
-            name = 'S{}'.format(count)  # Iteratively name sum nodes
-            print('Creating sum node,', name, ', from data with shape: ', data.shape)
+            # Randomly decide whether to split on columns (for now)
+            split_features = random.randint(0, 2) > 1
+            print('split_features:', split_features)
 
-            node = SumNode(name)
-            if weight:  # Parent is SumNode
-                parent.add_child(node, weight)
-            else:  # Parent is ProdNode
+            # Create leaf node if only 1x feature
+            if len(data.columns) == 1:  # Create leaf node; scope == 1
+                print('Creating leaf node from data with shape: ', data.shape)
+                count = len([l for l in self.nodes if l.type == NodeType.LEAF])
+                name = 'LEAF_{}'.format(count)  # Iteratively name leaf nodes
+                node = LeafNode(name)
                 parent.add_child(node)
-            self.nodes.append(node)
-            model = find_best_model(data)  # Find best Gaussian Mixture Model
-            clusters = model.predict(data)  # Find the best clusters to split data into, row-wise
-            classes = np.unique(clusters)
-            print('classes:', classes)
-            # Create the data subsets that will be children to this node
-            for c in classes:
-                subset = data[clusters == c]
-                weight = len(subset) / len(classes)
-                self.learn_spn(subset, node, weight)
+                self.nodes.append(node)
+
+            # Split features
+            elif split_features:
+                print('Creating product node from data with shape: ', data.shape)
+                count = len([p for p in self.nodes if p.type == NodeType.PRODUCT])
+                name = 'P{}'.format(count)  # Iteratively name product nodes
+                node = ProdNode(name)
+                if weight:  # Parent is SumNode
+                    parent.add_child(node, weight)
+                else:  # Parent is ProdNode
+                    parent.add_child(node)
+                self.nodes.append(node)
+                transposed = data.T
+                model = find_best_model(transposed)  # Find best Gaussian Mixture Model
+                clusters = model.predict(transposed)  # Find the best clusters to split data into, row-wise
+                classes = np.unique(clusters)
+                if len(classes) == 1:
+                    print('Classes don\'t want to split, forcing the issue.')
+                    clusters = np.array([1, 2])
+                    classes = np.unique(clusters)
+                # Create the data subsets that will be children to this node
+                for c in classes:
+                    subset = transposed[clusters == c]
+                    self.learn_spn(subset.T, node, None)
+
+            # Split rows
+            else:
+                count = len([s for s in self.nodes if s.type == NodeType.SUM])
+                name = 'S{}'.format(count)  # Iteratively name sum nodes
+                print('Creating sum node,', name, ', from data with shape: ', data.shape)
+
+                node = SumNode(name)
+                if weight:  # Parent is SumNode
+                    parent.add_child(node, weight)
+                else:  # Parent is ProdNode
+                    parent.add_child(node)
+                self.nodes.append(node)
+                model = find_best_model(data)  # Find best Gaussian Mixture Model
+                clusters = model.predict(data)  # Find the best clusters to split data into, row-wise
+                classes = np.unique(clusters)
+                print('classes:', classes)
+                # Create the data subsets that will be children to this node
+                for c in classes:
+                    subset = data[clusters == c]
+                    weight = len(subset) / len(classes)
+                    self.learn_spn(subset, node, weight)
+
+    def __str__(self):
+        text = ''
+        for node in self.nodes:
+            parents = [parent.name for parent in node.parents]
+            text += node.name + ' (parents: ' + str(parents) + '), '
+        return text
 
 
 def find_best_model(data):
